@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/mux"
 )
@@ -32,6 +33,12 @@ type PointsResponse struct {
 	Points int `json:"points"`
 }
 
+func calculatePoints() int {
+	points := 0
+
+	return points
+}
+
 func processReceiptsHandler(w http.ResponseWriter, r *http.Request) {
 
 }
@@ -39,6 +46,9 @@ func processReceiptsHandler(w http.ResponseWriter, r *http.Request) {
 func getPointsHandler(w http.ResponseWriter, r *http.Request) {
 
 }
+
+var receipts = make(map[string]Receipt)
+var mutex = &sync.Mutex{}
 
 func main() {
 	r := mux.NewRouter()
