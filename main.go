@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -29,11 +31,11 @@ type Item struct {
 	Price            string `json:"price"`
 }
 
-type ProcessResponse struct {
+type processReceiptResponse struct {
 	ID string `json:"id"`
 }
 
-type PointsResponse struct {
+type getPointsResponse struct {
 	Points int `json:"points"`
 }
 
@@ -72,11 +74,37 @@ func calculatePoints(r Receipt) int {
 }
 
 func processReceiptsHandler(w http.ResponseWriter, r *http.Request) {
-
+	var receipt Receipt
+	err := json.NewDecoder(r.Body).Decode(&receipt)
+	if err != nil {
+		http.Error(w, "Invalid receipt", http.StatusBadRequest)
+		return
+	}
+	id := uuid.New().String()
+	mutex.Lock()
+	receipts[id] = receipt
+	mutex.Unlock()
+	response := processReceiptResponse{ID: id}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
 
 func getPointsHandler(w http.ResponseWriter, r *http.Request) {
-
+	vars := mux.Vars(r)
+	id := vars["id"]
+	mutex.Lock()
+	receipt, exists := receipts[id]
+	mutex.Unlock()
+	if !exists {
+		http.Error(w, "Receipt not found", http.StatusNotFound)
+		return
+	}
+	points := calculatePoints(receipt)
+	response := getPointsResponse{Points: points}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
 
 var receipts = make(map[string]Receipt)
